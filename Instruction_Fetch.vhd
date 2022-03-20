@@ -12,7 +12,7 @@ entity Instruction_Fetch is
         jump_control: in std_logic;
         PCSrc_control: in std_logic;
         instruction: out std_logic_vector(15 downto 0);
-        next_sequential_instruction: out std_logic_vector(15 downto 0)
+        PC: out std_logic_vector(15 downto 0)
   );
 end Instruction_Fetch;
 
@@ -37,7 +37,8 @@ signal instruction_mem: rom_memory_type :=
          B"111_0100111001001", -- jmp
          others => x"0000");
          
-signal prog_counter: std_logic_vector(15 downto 0) := x"0000";
+signal prog_counter: std_logic_vector(15 downto 0);
+signal prog_counter_aux: std_logic_vector(15 downto 0);
 signal next_address: std_logic_vector(15 downto 0);
 signal aux_address: std_logic_vector(15 downto 0);
 
@@ -55,7 +56,7 @@ begin
     process(PCSrc_control)
     begin
         case(PCSrc_control) is
-            when '0' => aux_address <= prog_counter + 1;
+            when '0' => aux_address <= prog_counter_aux;
             when '1' => aux_address <= branch_address;
             when others => aux_address <= x"0000";
         end case;
@@ -63,16 +64,17 @@ begin
 
     process(clk, reset)
     begin
-        if reset = '1' then
-            prog_counter <= x"0000";
-        elsif rising_edge(clk) then
-            if write_enable = '1' then
+        if rising_edge(clk) then
+            if reset = '1' then
+                prog_counter <= x"0000";
+            elsif write_enable = '1' then
                 prog_counter <= next_address;
             end if;
         end if;
     end process;
 
-    instruction <= instruction_mem(to_integer(unsigned(prog_counter)));
-    next_sequential_instruction <= prog_counter;
+    prog_counter_aux <= prog_counter + '1';
+    instruction <= instruction_mem(to_integer(unsigned(prog_counter(7 downto 0))));
+    PC <= prog_counter_aux;
 
 end Behavioral;
