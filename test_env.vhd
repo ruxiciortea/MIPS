@@ -73,6 +73,20 @@ architecture Behavioral of test_env is
 		      memtoReg: out std_logic;
 		      regWrite: out std_logic);
     end component;
+    
+    component Execution_Unit is
+        Port (PC: in std_logic_vector(15 downto 0);
+              data1: in std_logic_vector(15 downto 0);
+              data2: in std_logic_vector(15 downto 0);
+              extended_immediate: in std_logic_vector(15 downto 0);
+              func: in std_logic_vector(2 downto 0);
+              shift_ammount: in std_logic;
+              ALUSrc: in std_logic;
+              ALUOp: in std_logic_vector(2 downto 0);
+              branch_address: out std_logic_vector(15 downto 0);
+              ALURes: out std_logic_vector(15 downto 0);
+              zero: out std_logic);
+    end component;
 
     signal s_counter: std_logic_vector(15 downto 0);
     signal s_counter_enable: std_logic_vector(4 downto 0);
@@ -105,6 +119,9 @@ architecture Behavioral of test_env is
     signal memWrite_signal: std_logic;
     signal memtoReg_signal: std_logic;
     signal regWrite_signal: std_logic;
+    
+    -- control unit signals
+    signal zero_detector_signal: std_logic;
     
 begin
 
@@ -157,15 +174,30 @@ begin
 		 memWrite => memWrite_signal,
 		 memtoReg => memtoReg_signal,
 		 regWrite => regWrite_signal);
+		 
+    exec_unit: Execution_Unit port map
+        (PC => PC_out,
+         data1 => data1_out,
+         data2 => data2_out,
+         extended_immediate => ext_imm_signal,
+         func => func_signal,
+         shift_ammount => shift_ammount_signal,
+         ALUSrc => ALUSrc_signal,
+         ALUOp => ALUOp_signal,
+         branch_address => branch_addr_signal,
+         ALURes => write_data_signal,
+         zero => zero_detector_signal);
     
-    process(sw(7 downto 5))
+    process(sw(7 downto 5), instruction_out, PC_out, ext_imm_signal)
     begin
         case(sw(7 downto 5)) is
             when "000" => ssd_in <= instruction_out;
             when "001" => ssd_in <= PC_out;
             when "010" => ssd_in <= data1_out;
             when "011" => ssd_in <= data2_out;
-            when "100" => ssd_in <= write_data_signal;
+            when "100" => ssd_in <= ext_imm_signal;
+            when "101" => ssd_in <= write_data_signal;
+            when "110" => ssd_in <= write_data_signal;
             when others => ssd_in <= x"0000";
         end case;
     end process;
@@ -174,9 +206,23 @@ begin
     jump_ctrl_signal <= sw(0);
     PCSrc_ctrl_signal <= sw(1);
     
-    -- instruction decode
-    write_data_signal <= data1_out + data2_out;
-    
-    led <= sw;
+    process(sw(4))
+    begin
+        if (sw(4) = '1') then
+           led(7) <= regDst_signal;
+           led(6) <= extOp_signal;
+           led(5) <= ALUSrc_signal;
+           led(4) <= branch_signal;
+           led(3) <= jump_signal;
+           led(2) <= memWrite_signal;
+           led(1) <= memtoReg_signal;
+           led(0) <= regWrite_signal;
+	    else
+	       led(2) <= ALUOp_signal(2);
+	       led(1) <= ALUOp_signal(1);
+	       led (0) <= ALUOp_signal(0);
+	       led(15 downto 3) <= "0000000000000";
+	    end if;
+    end process;
 
 end Behavioral;

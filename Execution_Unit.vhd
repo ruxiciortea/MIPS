@@ -43,7 +43,7 @@ begin
     process(ALUOp, func)
     begin
         case(ALUOp) is
-            when "000" => -- R type instruction
+            when "010" => -- R type instruction
                 case(func) is
                     when "000" => ALUControl <= "0000"; -- add
                     when "001" => ALUControl <= "0001"; -- sub
@@ -55,20 +55,19 @@ begin
                     when "111" => ALUControl <= "0111"; -- addu
                     when others => ALUControl <= "0000"; -- add
                 end case;
-            when "010" => ALUControl <= "1000"; -- lw
-            when "011" => ALUControl <= "1001"; -- sw
-            when "100" => ALUControl <= "1010"; -- beq
-            when "110" => ALUControl <= "1011"; -- lui
-            when "111" => ALUControl <= "1100"; -- jmp
+            when "000" => ALUControl <= "0000"; -- addi & lw & sw
+            when "001" => ALUControl <= "0001"; -- beq
+            when "011" => ALUControl <= "0100"; -- andi
+            when "100" => ALUControl <= "1000"; -- lui
             when others => ALUControl <= "0000"; -- add
         end case;
     end process;
 
-    process(ALUControl, ALUOperand1, ALUOperand2, shift_ammount)
+    ALU: process(ALUControl, ALUOperand1, ALUOperand2, shift_ammount)
     begin
         case(ALUControl) is
-            when "0000" => ALUResAux <= ALUOperand1 + ALUOperand1; -- add OR addi
-            when "0001" => ALUResAux <= ALUOperand1 - ALUOperand1; -- sub
+            when "0000" => ALUResAux <= ALUOperand1 + ALUOperand2; -- add OR addi
+            when "0001" => ALUResAux <= ALUOperand1 - ALUOperand2; -- sub
             when "0010" => -- sll
                 case(shift_ammount) is
                     when '1' => ALUResAux <= data1(14 downto 0) & "0";
@@ -79,15 +78,11 @@ begin
                     when '1' => ALUResAux <= "0" & data1(15 downto 1);
                     when others => ALUResAux <= data1;
                 end case;
-            when "0100" => ALUResAux <= ALUOperand1 and ALUOperand1; -- and OR andi
-            when "0101" => ALUResAux <= ALUOperand1 or ALUOperand1; -- or
-            when "0110" => ALUResAux <= ALUOperand1 xor ALUOperand1; -- xor
-            when "0111" => ALUResAux <= unsigned(ALUOperand1) + unsigned(ALUOperand1); -- addu
--- TO DO            when "1000" => ; -- lw
--- TO DO            when "1001" => ; -- sw
--- TO DO            when "1010" => ; -- beq
--- TO DO            when "1011" => ; -- lui
--- TO DO            when "1100" => ; -- jmp
+            when "0100" => ALUResAux <= ALUOperand1 and ALUOperand2; -- and OR andi
+            when "0101" => ALUResAux <= ALUOperand1 or ALUOperand2; -- or
+            when "0110" => ALUResAux <= ALUOperand1 xor ALUOperand2; -- xor
+            when "0111" => ALUResAux <= unsigned(ALUOperand1) + unsigned(ALUOperand2); -- addu
+            when "1000" => ALUResAux <= ALUOperand2(7 downto 0) & x"00"; -- lui
             when others => ALUResAux <= x"0000";
         end case;
     end process;
