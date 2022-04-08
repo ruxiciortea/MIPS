@@ -87,6 +87,17 @@ architecture Behavioral of test_env is
               ALURes: out std_logic_vector(15 downto 0);
               zero: out std_logic);
     end component;
+    
+    component Memory_Unit is
+        Port (clk: in std_logic;
+              enable: in std_logic;
+              ALURes: in std_logic_vector(15 downto 0); 
+              data2: in std_logic_vector(15 downto 0);
+              memWrite: in std_logic;
+              memData: out std_logic_vector(15 downto 0);
+              ALUResOut: out std_logic_vector(15 downto 0)
+        );
+    end component;
 
     signal s_counter: std_logic_vector(15 downto 0);
     signal s_counter_enable: std_logic_vector(4 downto 0);
@@ -104,10 +115,10 @@ architecture Behavioral of test_env is
     -- instruction decode unit signals
     signal data1_out: std_logic_vector(15 downto 0);
     signal data2_out: std_logic_vector(15 downto 0);
-    signal write_data_signal: std_logic_vector(15 downto 0);
     signal ext_imm_signal: std_logic_vector(15 downto 0);
     signal func_signal: std_logic_vector(2 downto 0);
     signal shift_ammount_signal: std_logic;
+    signal register_write_data: std_logic_vector(15 downto 0);
     
     -- control unit signals
     signal regDst_signal: std_logic;
@@ -120,8 +131,11 @@ architecture Behavioral of test_env is
     signal memtoReg_signal: std_logic;
     signal regWrite_signal: std_logic;
     
-    -- control unit signals
+    -- execution unit signals
     signal zero_detector_signal: std_logic;
+    signal ALURes: std_logic_vector(15 downto 0);
+    signal mem_data_out: std_logic_vector(15 downto 0);
+    signal ALURes_out: std_logic_vector(15 downto 0);
     
 begin
 
@@ -154,7 +168,7 @@ begin
         (clk => clk,
          instruction => instruction_out,
          regWrite => regWrite_signal,
-         write_data => write_data_signal,
+         write_data => register_write_data,
          regDst => regDst_signal,
          extOp => extOp_signal,
          data1 => data1_out,
@@ -185,8 +199,26 @@ begin
          ALUSrc => ALUSrc_signal,
          ALUOp => ALUOp_signal,
          branch_address => branch_addr_signal,
-         ALURes => write_data_signal,
+         ALURes => ALURes,
          zero => zero_detector_signal);
+         
+    memory: Memory_Unit port map
+        (clk => clk,
+         enable => s_counter_enable(1),
+         ALURes => ALURes,
+         data2 => data2_out,
+         memWrite => memWrite_signal,
+         memData => mem_data_out,
+         ALUResOut => ALURes_out);
+         
+    process(memtoReg_signal)
+    begin
+        case(memtoReg_signal) is
+            when '0' => register_write_data <= ALURes;
+            when '1' => register_write_data <= mem_data_out;
+            when others => register_write_data <= x"0000";
+        end case;
+    end process;  
     
     process(sw(7 downto 5), instruction_out, PC_out, ext_imm_signal)
     begin
@@ -196,8 +228,8 @@ begin
             when "010" => ssd_in <= data1_out;
             when "011" => ssd_in <= data2_out;
             when "100" => ssd_in <= ext_imm_signal;
-            when "101" => ssd_in <= write_data_signal;
-            when "110" => ssd_in <= write_data_signal;
+            when "101" => ssd_in <= ALURes;
+            when "110" => ssd_in <= mem_data_out;
             when others => ssd_in <= x"0000";
         end case;
     end process;
@@ -206,9 +238,9 @@ begin
     jump_ctrl_signal <= sw(0);
     PCSrc_ctrl_signal <= sw(1);
     
-    process(sw(4))
+    process(sw(0))
     begin
-        if (sw(4) = '1') then
+        if (sw(0) = '0') then
            led(7) <= regDst_signal;
            led(6) <= extOp_signal;
            led(5) <= ALUSrc_signal;
@@ -220,7 +252,7 @@ begin
 	    else
 	       led(2) <= ALUOp_signal(2);
 	       led(1) <= ALUOp_signal(1);
-	       led (0) <= ALUOp_signal(0);
+	       led(0) <= ALUOp_signal(0);
 	       led(15 downto 3) <= "0000000000000";
 	    end if;
     end process;

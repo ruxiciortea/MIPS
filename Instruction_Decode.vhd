@@ -62,7 +62,12 @@ begin
     begin
         case(extOp) is
             when '0' => ext_imm_signal <= B"000000000" &instruction(6 downto 0);
-            when '1' => ext_imm_signal <= B"111111111" & instruction(6 downto 0);
+            when '1' =>
+                case(instruction(6)) is
+                    when '0' => ext_imm_signal <= B"000000000" &instruction(6 downto 0);
+                    when '1' => ext_imm_signal <= B"111111111" & instruction(6 downto 0);
+                    when others => ext_imm_signal <= x"0000";
+                end case;
             when others => ext_imm_signal <= x"0000";
         end case;
     end process;
