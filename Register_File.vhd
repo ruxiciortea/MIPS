@@ -24,7 +24,7 @@ architecture Behavioral of Register_File is
         x"0003", 
         x"0004", 
         x"0005", 
-        x"0006", 
+        x"0002", 
         x"0007", 
         x"0008", 
         x"0009", 

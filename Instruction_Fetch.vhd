@@ -21,20 +21,20 @@ architecture Behavioral of Instruction_Fetch is
 type rom_memory_type is array(0 to 255) of std_logic_vector(15 downto 0);
 signal instruction_mem: rom_memory_type := 
         (B"000_010_011_100_1_000", -- add
-         B"000_010_011_100_1_001", -- sub
+         B"000_001_000_100_1_001", -- sub
          B"000_010_011_100_1_010", -- sll
          B"000_010_011_100_1_011", -- srl
          B"000_010_011_100_1_100", -- and
          B"000_010_011_100_1_101", -- or
          B"000_010_011_100_1_110", -- xor
          B"000_010_011_100_1_111", -- addu
-         B"001_010_011_1001001", -- addi
-         B"010_010_011_1001001", -- lw
-         B"011_010_011_1001001", -- sw
-         B"100_010_011_1001001", -- beq
+         B"001_010_011_000001", -- addi
+         B"010_110_100_0000001", -- sw
+         B"011_110_111_0000001", -- lw
+         B"100_001_000_0000010", -- beq
          B"101_010_011_1001001", -- andi
-         B"110_010_011_1001001", -- lui (load upper imediate)
-         B"111_0100111001001", -- jmp
+         B"110_010_011_0000100", -- lui (load upper imediate)
+         B"111_0000000000011", -- jmp
          others => x"0000");
          
 signal prog_counter: std_logic_vector(15 downto 0);

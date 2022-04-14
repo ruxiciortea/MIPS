@@ -105,8 +105,7 @@ architecture Behavioral of test_env is
     signal ssd_in: std_logic_vector(15 downto 0);
    
     -- instruction fetch unit signals
-    signal branch_addr_signal: std_logic_vector(15 downto 0) := x"0004";
-    signal jump_addr_signal: std_logic_vector(15 downto 0) := x"0000";
+    signal branch_addr_signal: std_logic_vector(15 downto 0);
     signal jump_ctrl_signal: std_logic;
     signal PCSrc_ctrl_signal: std_logic;
     signal instruction_out: std_logic_vector(15 downto 0);
@@ -119,6 +118,7 @@ architecture Behavioral of test_env is
     signal func_signal: std_logic_vector(2 downto 0);
     signal shift_ammount_signal: std_logic;
     signal register_write_data: std_logic_vector(15 downto 0);
+    signal regWrite_signal_final: std_logic;
     
     -- control unit signals
     signal regDst_signal: std_logic;
@@ -139,6 +139,9 @@ architecture Behavioral of test_env is
     
 begin
 
+    regWrite_signal_final <= regWrite_signal and s_counter_enable(3);
+    PCSrc_ctrl_signal <= branch_signal and zero_detector_signal;
+
     mpg: mono_pulse_gen port map
         (clk => clk,
          btn => btn,
@@ -158,7 +161,7 @@ begin
          reset => s_counter_enable(0),
          write_enable => s_counter_enable(1),
          branch_address => branch_addr_signal,
-         jump_address => jump_addr_signal,
+         jump_address => ext_imm_signal,
          jump_control => jump_ctrl_signal,
          PCSrc_control => PCSrc_ctrl_signal,
          instruction => instruction_out,
@@ -167,7 +170,7 @@ begin
     I_D: Instruction_Decode port map
         (clk => clk,
          instruction => instruction_out,
-         regWrite => regWrite_signal,
+         regWrite => regWrite_signal_final,
          write_data => register_write_data,
          regDst => regDst_signal,
          extOp => extOp_signal,
@@ -183,7 +186,7 @@ begin
 		 extOp => extOp_signal,
 		 ALUSrc => ALUSrc_signal,
 		 branch => branch_signal,
-		 jump => jump_signal,
+		 jump => jump_ctrl_signal,
 		 ALUOp => ALUOp_signal,
 		 memWrite => memWrite_signal,
 		 memtoReg => memtoReg_signal,
@@ -204,7 +207,7 @@ begin
          
     memory: Memory_Unit port map
         (clk => clk,
-         enable => s_counter_enable(1),
+         enable => s_counter_enable(2),
          ALURes => ALURes,
          data2 => data2_out,
          memWrite => memWrite_signal,
@@ -214,7 +217,7 @@ begin
     process(memtoReg_signal)
     begin
         case(memtoReg_signal) is
-            when '0' => register_write_data <= ALURes;
+            when '0' => register_write_data <= ALURes_out;
             when '1' => register_write_data <= mem_data_out;
             when others => register_write_data <= x"0000";
         end case;
@@ -228,15 +231,11 @@ begin
             when "010" => ssd_in <= data1_out;
             when "011" => ssd_in <= data2_out;
             when "100" => ssd_in <= ext_imm_signal;
-            when "101" => ssd_in <= ALURes;
+            when "101" => ssd_in <= ALURes_out;
             when "110" => ssd_in <= mem_data_out;
             when others => ssd_in <= x"0000";
         end case;
     end process;
-    
-    -- instruction fetch
-    jump_ctrl_signal <= sw(0);
-    PCSrc_ctrl_signal <= sw(1);
     
     process(sw(0))
     begin

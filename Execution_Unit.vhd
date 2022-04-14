@@ -28,7 +28,6 @@ signal zeroAux: std_logic;
 
 begin
 
-    branch_address <= PC + extended_immediate;
     ALUOperand1 <= data1;
     
     process(ALUSrc)
@@ -95,6 +94,7 @@ begin
         end case;
     end process;
     
+    branch_address <= PC + extended_immediate;
     ALURes <= ALUResAux;
     zero <= zeroAux;
 
